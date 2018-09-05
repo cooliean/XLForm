@@ -68,12 +68,12 @@
 
 #pragma mark - Initialization
 
--(id)initWithForm:(XLFormDescriptor *)form
+-(instancetype)initWithForm:(XLFormDescriptor *)form
 {
     return [self initWithForm:form style:UITableViewStyleGrouped];
 }
 
--(id)initWithForm:(XLFormDescriptor *)form style:(UITableViewStyle)style
+-(instancetype)initWithForm:(XLFormDescriptor *)form style:(UITableViewStyle)style
 {
     self = [self initWithNibName:nil bundle:nil];
     if (self){
@@ -83,28 +83,25 @@
     return self;
 }
 
--(id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+-(instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self){
-        [self defaultInitialize];
+        _form = nil;
+        _tableViewStyle = UITableViewStyleGrouped;
     }
     return self;
 }
 
--(id)initWithCoder:(NSCoder *)aDecoder
+-(instancetype)initWithCoder:(NSCoder *)aDecoder
 {
     self = [super initWithCoder:aDecoder];
-    if (self){
-        [self defaultInitialize];
+    if (self) {
+        _form = nil;
+        _tableViewStyle = UITableViewStyleGrouped;
     }
+    
     return self;
-}
-
--(void)defaultInitialize
-{
-    _form = nil;
-    _tableViewStyle = UITableViewStyleGrouped;
 }
 
 - (void)dealloc
@@ -465,32 +462,24 @@
 
 -(void)showFormValidationError:(NSError *)error
 {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED < 80000
-    UIAlertView * alertView = [[UIAlertView alloc] initWithTitle:NSLocalizedString(@"XLFormViewController_ValidationErrorTitle", nil)
-                                                         message:error.localizedDescription
-                                                        delegate:self
-                                               cancelButtonTitle:NSLocalizedString(@"OK", nil)
-                                               otherButtonTitles:nil];
-    [alertView show];
-#else
-    if ([UIAlertController class]){
-        UIAlertController * alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"XLFormViewController_ValidationErrorTitle", nil)
-                                                                                  message:error.localizedDescription
-                                                                           preferredStyle:UIAlertControllerStyleAlert];
-        [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
-                                                            style:UIAlertActionStyleDefault
-                                                          handler:nil]];
-        [self presentViewController:alertController animated:YES completion:nil];
-    }
-    else{
-        UIAlertView * alertView = [[UIAlertView alloc] initWithTitle:NSLocalizedString(@"XLFormViewController_ValidationErrorTitle", nil)
-                                                             message:error.localizedDescription
-                                                            delegate:self
-                                                   cancelButtonTitle:NSLocalizedString(@"OK", nil)
-                                                   otherButtonTitles:nil];
-        [alertView show];
-    }
-#endif
+    UIAlertController * alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"XLFormViewController_ValidationErrorTitle", nil)
+                                                                              message:error.localizedDescription
+                                                                       preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                        style:UIAlertActionStyleDefault
+                                                      handler:nil]];
+    [self presentViewController:alertController animated:YES completion:nil];
+}
+
+-(void)showFormValidationError:(NSError *)error withTitle:(NSString*)title
+{
+    UIAlertController * alertController = [UIAlertController alertControllerWithTitle:NSLocalizedString(title, nil)
+                                                                              message:error.localizedDescription
+                                                                       preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                        style:UIAlertActionStyleDefault
+                                                      handler:nil]];
+    [self presentViewController:alertController animated:YES completion:nil];
 }
 
 -(void)performFormSelector:(SEL)selector withObject:(id)sender
@@ -617,13 +606,8 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     XLFormRowDescriptor * rowDescriptor = [self.form formRowAtIndex:indexPath];
-    return [rowDescriptor cellForFormController:self];
-}
-
--(void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    XLFormRowDescriptor * rowDescriptor = [self.form formRowAtIndex:indexPath];
     [self updateFormRow:rowDescriptor];
+    return [rowDescriptor cellForFormController:self];
 }
 
 
@@ -730,9 +714,10 @@
 -(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     XLFormRowDescriptor *rowDescriptor = [self.form formRowAtIndex:indexPath];
-    Class cellClass = [[rowDescriptor cellForFormController:self] class];
-    if ([cellClass respondsToSelector:@selector(formDescriptorCellHeightForRowDescriptor:)]){
-        return [cellClass formDescriptorCellHeightForRowDescriptor:rowDescriptor];
+    [rowDescriptor cellForFormController:self];
+    CGFloat height = rowDescriptor.height;
+    if (height != XLFormUnspecifiedCellHeight){
+        return height;
     }
     return self.tableView.rowHeight;
 }
@@ -740,9 +725,10 @@
 -(CGFloat)tableView:(UITableView *)tableView estimatedHeightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     XLFormRowDescriptor *rowDescriptor = [self.form formRowAtIndex:indexPath];
-    Class cellClass = [[rowDescriptor cellForFormController:self] class];
-    if ([cellClass respondsToSelector:@selector(formDescriptorCellHeightForRowDescriptor:)]){
-        return [cellClass formDescriptorCellHeightForRowDescriptor:rowDescriptor];
+    [rowDescriptor cellForFormController:self];
+    CGFloat height = rowDescriptor.height;
+    if (height != XLFormUnspecifiedCellHeight){
+        return height;
     }
     if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")){
         return self.tableView.estimatedRowHeight;
@@ -906,6 +892,10 @@
 
 -(void)textViewDidEndEditing:(UITextView *)textView
 {
+}
+
+- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
+	return YES;
 }
 
 #pragma mark - UIScrollViewDelegate

@@ -33,7 +33,7 @@
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (id)initWithFrame:(CGRect)frame
+- (instancetype)initWithFrame:(CGRect)frame
 {
     if((self = [super initWithFrame:frame])){
         self.scrollsToTop = NO;
@@ -78,6 +78,7 @@
         }
         _placeHolderLabel.text = self.placeholder;
         _placeHolderLabel.font = self.font;
+        _placeHolderLabel.textColor = self.placeholderColor;
         [_placeHolderLabel sizeToFit];
         [self sendSubviewToBack:_placeHolderLabel];
     }
